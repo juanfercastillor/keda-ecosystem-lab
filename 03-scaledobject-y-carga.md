@@ -5,11 +5,12 @@ carga HTTP para observar el ciclo completo de elasticidad:
 **crecer con la demanda y decrecer al cesarla**.
 
 > **Nota multiplataforma**: `kubectl` funciona igual en Linux, macOS y
-> Windows. Para la carga hay dos scripts equivalentes:
+> Windows. Para la carga hay tres scripts equivalentes:
 >
 > | Sistema | Script | Base |
 > |---|---|---|
-> | Windows | `scripts\carga.ps1` | `HttpClient` + tareas concurrentes (PowerShell 5.1+) |
+> | Windows (PowerShell) | `scripts\carga.ps1` | `HttpClient` + tareas concurrentes (PowerShell 5.1+) |
+> | Windows (cmd.exe) | `scripts\carga.cmd` | launcher que invoca `carga.ps1` con `-ExecutionPolicy Bypass` |
 > | Linux / macOS / Git Bash | `scripts/carga.sh` | `xargs -P` + `curl` |
 
 ## 1. Crear el ScaledObject
@@ -75,6 +76,14 @@ kubectl -n elasticity-lab port-forward svc/elasticity-api 8080:8080
 
 > Si PowerShell bloquea la ejecución de scripts (*execution policy*):
 > `powershell -ExecutionPolicy Bypass -File .\scripts\carga.ps1`
+
+### Windows (cmd.exe)
+
+```bat
+scripts\carga.cmd 20 300
+REM o con URL propia:
+scripts\carga.cmd 40 600 "http://localhost:8080/api/work?ms=500"
+```
 
 ### Linux / macOS / Git Bash
 

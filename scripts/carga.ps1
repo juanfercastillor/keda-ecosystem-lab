@@ -29,6 +29,8 @@ param(
     [int]$DuracionSegundos = 300
 )
 
+Add-Type -AssemblyName System.Net.Http -ErrorAction SilentlyContinue
+
 $client = [System.Net.Http.HttpClient]::new()
 $client.Timeout = [TimeSpan]::FromSeconds(60)
 
