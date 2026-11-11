@@ -97,4 +97,5 @@ Notas:
 ## Anterior / índice
 
 - ← [04-escalado-prometheus.md](04-escalado-prometheus.md)
+- → [06-ingenieria-de-capacidad.md](06-ingenieria-de-capacidad.md) — cómo se determinan los valores de escalado
 - [README.md](README.md) — guía principal

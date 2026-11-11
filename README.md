@@ -67,6 +67,7 @@ número de réplicas en función de la demanda.
 | [03-scaledobject-y-carga.md](03-scaledobject-y-carga.md) | ScaledObject por CPU + prueba de carga + observabilidad |
 | [04-escalado-prometheus.md](04-escalado-prometheus.md) | (Opcional) Escalado por req/s promedio con Prometheus |
 | [05-solucion-de-problemas.md](05-solucion-de-problemas.md) | Resolución de problemas |
+| [06-ingenieria-de-capacidad.md](06-ingenieria-de-capacidad.md) | Teoría: cómo se determinan umbrales y valores de escalado |
 
 Este README es la versión monolítica de la misma práctica; las guías
 numeradas la desglosan paso a paso.
@@ -82,6 +83,7 @@ keda-ecosystem-lab/
 ├── 03-scaledobject-y-carga.md
 ├── 04-escalado-prometheus.md  # (opcional)
 ├── 05-solucion-de-problemas.md
+├── 06-ingenieria-de-capacidad.md # Teoría de calibración de escalado
 ├── elasticity-api/            # Microservicio Spring Boot 4.1 + Java 25 + Gradle 9.9
 │   ├── Dockerfile             # Build multi-etapa (gradle → temurin-jre)
 │   ├── build.gradle.kts
