@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: elasticity-api
+  namespace: elasticity-lab
+  labels:
+    app: elasticity-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: elasticity-api
+  template:
+    metadata:
+      labels:
+        app: elasticity-api
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: /actuator/prometheus
+    spec:
+      containers:
+        - name: elasticity-api
+          image: elasticity-api:0.0.1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: JAVA_TOOL_OPTIONS
+              value: "-Xms128m -Xmx384m"
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 10

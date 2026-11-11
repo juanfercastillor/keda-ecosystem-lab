@@ -1,0 +1,27 @@
+# ScaledObject alternativo (ANEXO): escala en función de las peticiones HTTP
+# promedio por pod, usando el scaler de Prometheus de KEDA.
+#
+# Requiere Prometheus instalado en el namespace elasticity-lab (ver README, anexo A).
+# Aplica SOLO uno de los dos ScaledObject a la vez:
+#   kubectl delete scaledobject elasticity-api-scaler -n elasticity-lab
+#   kubectl apply -f 30-scaledobject-prometheus.yaml
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: elasticity-api-scaler
+  namespace: elasticity-lab
+spec:
+  scaleTargetRef:
+    name: elasticity-api
+  pollingInterval: 15
+  cooldownPeriod: 120
+  minReplicaCount: 1
+  maxReplicaCount: 8
+  triggers:
+    - type: prometheus
+      metadata:
+        serverAddress: http://prometheus-server.elasticity-lab.svc.cluster.local
+        metricName: http_requests_per_pod_avg
+        # Promedio de peticiones/segundo por pod en el último minuto
+        query: avg(rate(http_server_requests_seconds_count{namespace="elasticity-lab", pod=~"elasticity-api-.*"}[1m]))
+        threshold: "5"
