@@ -112,3 +112,9 @@ y la prueba de elasticidad.
 ```bash
 kubectl delete -f k8s/10-deployment.yaml -f k8s/11-service.yaml
 ```
+
+## Navegación
+
+- ← [01-instalacion-cluster.md](01-instalacion-cluster.md)
+- → [03-scaledobject-y-carga.md](03-scaledobject-y-carga.md) — ScaledObject y prueba de carga
+- [05-solucion-de-problemas.md](05-solucion-de-problemas.md) — si algo falla

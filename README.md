@@ -57,11 +57,31 @@ número de réplicas en función de la demanda.
 > filtros nativos equivalentes: `helm list --filter`, `docker images <nombre>`,
 > `kubectl get <recurso> <nombre>`.
 
+## Guías del laboratorio
+
+| Archivo | Contenido |
+|---|---|
+| [00-crear-namespace.md](00-crear-namespace.md) | Creación del namespace `elasticity-lab` |
+| [01-instalacion-cluster.md](01-instalacion-cluster.md) | Instalar metrics-server y KEDA (namespace `keda`) |
+| [02-despliegue-microservicio.md](02-despliegue-microservicio.md) | Build de la imagen y despliegue del servicio |
+| [03-scaledobject-y-carga.md](03-scaledobject-y-carga.md) | ScaledObject por CPU + prueba de carga + observabilidad |
+| [04-escalado-prometheus.md](04-escalado-prometheus.md) | (Opcional) Escalado por req/s promedio con Prometheus |
+| [05-solucion-de-problemas.md](05-solucion-de-problemas.md) | Resolución de problemas |
+
+Este README es la versión monolítica de la misma práctica; las guías
+numeradas la desglosan paso a paso.
+
 ## Estructura del repositorio
 
 ```
 keda-ecosystem-lab/
 ├── README.md
+├── 00-crear-namespace.md      # Guías numeradas del laboratorio
+├── 01-instalacion-cluster.md
+├── 02-despliegue-microservicio.md
+├── 03-scaledobject-y-carga.md
+├── 04-escalado-prometheus.md  # (opcional)
+├── 05-solucion-de-problemas.md
 ├── elasticity-api/            # Microservicio Spring Boot 4.1 + Java 25 + Gradle 9.9
 │   ├── Dockerfile             # Build multi-etapa (gradle → temurin-jre)
 │   ├── build.gradle.kts
@@ -71,9 +91,10 @@ keda-ecosystem-lab/
 │   ├── 10-deployment.yaml     # Deployment del microservicio
 │   ├── 11-service.yaml        # Service NodePort :30080
 │   ├── 20-scaledobject-cpu.yaml        # ScaledObject (escenario principal)
-│   └── 30-scaledobject-prometheus.yaml # ScaledObject por req/s (anexo A)
+│   └── 30-scaledobject-prometheus.yaml # ScaledObject por req/s (paso 4)
 └── scripts/
     ├── carga.ps1              # Generador de carga (PowerShell)
+    ├── carga.cmd              # Generador de carga (cmd.exe)
     └── carga.sh               # Generador de carga (bash)
 ```
 
@@ -278,61 +299,24 @@ Ese ciclo *crecer con la demanda y decrecer al cesarla* es la elasticidad.
 
 ---
 
-## Anexo A — Escalado por *peticiones promedio* con Prometheus (opcional)
+## Escalado por peticiones promedio con Prometheus (opcional)
 
 El escenario principal usa CPU como señal (peticiones → CPU → réplicas).
 Para escalar sobre la métrica literal *peticiones/segundo promedio por pod*
-se necesita una fuente de métricas HTTP: **Prometheus** + el scaler
-`prometheus` de KEDA. El microservicio ya expone `http_server_requests_*`
-en `/actuator/prometheus`.
+sigue la guía dedicada: **[04-escalado-prometheus.md](04-escalado-prometheus.md)**
+(instalación de Prometheus, `ScaledObject` con scaler `prometheus` y la
+query PromQL explicada).
 
-1. Instala Prometheus en el namespace:
+## Resolución de problemas
 
-   ```bash
-   helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-   helm install prometheus prometheus-community/prometheus -n elasticity-lab
-   kubectl -n elasticity-lab rollout status deployment/prometheus-server
-   ```
-
-   El chart scrapea automáticamente los pods anotados con
-   `prometheus.io/scrape: "true"` (ya incluido en el Deployment).
-
-2. Sustituye el ScaledObject (solo uno activo a la vez):
-
-   ```bash
-   kubectl -n elasticity-lab delete scaledobject elasticity-api-scaler
-   kubectl apply -f k8s/30-scaledobject-prometheus.yaml
-   ```
-
-   La consulta usada es:
-
-   ```promql
-   avg(rate(http_server_requests_seconds_count{namespace="elasticity-lab",
-        pod=~"elasticity-api-.*"}[1m]))
-   ```
-
-   es decir, **peticiones por segundo promedio por pod**; con
-   `threshold: "5"` el deployment escala cuando cada pod recibe de media
-   más de 5 req/s.
-
-3. Repite la prueba de carga del paso 7 y observa el HPA:
-   la métrica mostrada será `http_requests_per_pod_avg` en lugar de CPU.
-
-## Anexo B — Resolución de problemas
-
-| Síntoma | Causa probable | Acción |
-|---|---|---|
-| Pods `ImagePullBackOff` | Docker Desktop sin *containerd image store*: `docker build` guarda en el store de Docker y el kubelet (containerd) no la ve | Importa la imagen a containerd: `docker save elasticity-api:0.0.1 \| kubectl debug node/desktop-control-plane -i --image=busybox:1.36 --profile=sysadmin -- chroot /host ctr -n k8s.io images import -`, o habilita *Settings → General → Use containerd for pulling and storing images* y reconstruye |
-| HPA muestra `unknown` en targets | metrics-server no instalado o sin `--kubelet-insecure-tls` | Paso 3 |
-| `localhost:30080` no responde | Docker Desktop no publica el NodePort en el host con ciertas configuraciones de red | Usa `kubectl -n elasticity-lab port-forward svc/elasticity-api 8080:8080` y `curl http://localhost:8080/api/hello` |
-| No escala pese a la carga | Umbral alto o peticiones muy cortas | Sube `ms`, la concurrencia, o baja `value` del trigger |
-| ScaledObject `Ready: False` | Error en triggers | `kubectl -n elasticity-lab describe scaledobject elasticity-api-scaler` y logs del operador |
+Errores frecuentes del laboratorio y su solución, agrupados por área:
+**[05-solucion-de-problemas.md](05-solucion-de-problemas.md)**.
 
 ## Limpieza
 
 ```bash
 kubectl delete namespace elasticity-lab           # borra app, service y ScaledObject
-helm uninstall prometheus -n elasticity-lab       # solo si instalaste el anexo
+helm uninstall prometheus -n elasticity-lab       # solo si instalaste el paso 4
 helm uninstall keda -n keda                       # opcional: deja KEDA instalado para otras prácticas
 kubectl delete namespace keda                     # solo tras desinstalar KEDA
 docker rmi elasticity-api:0.0.1                   # opcional

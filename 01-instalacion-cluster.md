@@ -139,3 +139,8 @@ helm uninstall keda -n keda
 kubectl delete namespace keda
 kubectl delete -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
 ```
+
+## Siguiente paso
+
+- → [02-despliegue-microservicio.md](02-despliegue-microservicio.md) — desplegar elasticity-api
+- [05-solucion-de-problemas.md](05-solucion-de-problemas.md) — si algo falla

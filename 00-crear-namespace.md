@@ -87,3 +87,8 @@ kubectl config set-context --current --namespace=default
 ```bash
 kubectl delete namespace elasticity-lab
 ```
+
+## Siguiente paso
+
+- → [01-instalacion-cluster.md](01-instalacion-cluster.md) — instalar metrics-server y KEDA
+- [05-solucion-de-problemas.md](05-solucion-de-problemas.md) — si algo falla

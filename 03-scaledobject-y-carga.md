@@ -187,3 +187,9 @@ kubectl -n elasticity-lab delete scaledobject elasticity-api-scaler
 # KEDA elimina también el HPA; el deployment queda con sus réplicas actuales
 kubectl -n elasticity-lab scale deployment/elasticity-api --replicas=1
 ```
+
+## Navegación
+
+- ← [02-despliegue-microservicio.md](02-despliegue-microservicio.md)
+- → [04-escalado-prometheus.md](04-escalado-prometheus.md) — (opcional) escalar por req/s promedio con Prometheus
+- [05-solucion-de-problemas.md](05-solucion-de-problemas.md) — si algo falla
