@@ -1,8 +1,8 @@
-# ScaledObject alternativo (ANEXO): escala en función de las peticiones HTTP
+# ScaledObject alternativo (PASO 4): escala en función de las peticiones HTTP
 # promedio por pod, usando el scaler de Prometheus de KEDA.
 #
-# Requiere Prometheus instalado en el namespace elasticity-lab (ver README, anexo A).
-# Aplica SOLO uno de los dos ScaledObject a la vez:
+# Requiere Prometheus instalado en el namespace elasticity-lab (ver
+# 04-escalado-prometheus.md). Aplica SOLO uno de los dos ScaledObject a la vez:
 #   kubectl delete scaledobject elasticity-api-scaler -n elasticity-lab
 #   kubectl apply -f 30-scaledobject-prometheus.yaml
 apiVersion: keda.sh/v1alpha1
@@ -17,11 +17,31 @@ spec:
   cooldownPeriod: 120
   minReplicaCount: 1
   maxReplicaCount: 8
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleUp:
+          stabilizationWindowSeconds: 0
+          policies:
+            - type: Percent
+              value: 100
+              periodSeconds: 15
+        scaleDown:
+          stabilizationWindowSeconds: 120
+          policies:
+            - type: Percent
+              value: 50
+              periodSeconds: 60
   triggers:
     - type: prometheus
       metadata:
         serverAddress: http://prometheus-server.elasticity-lab.svc.cluster.local
         metricName: http_requests_per_pod_avg
-        # Promedio de peticiones/segundo por pod en el último minuto
-        query: avg(rate(http_server_requests_seconds_count{namespace="elasticity-lab", pod=~"elasticity-api-.*"}[1m]))
-        threshold: "5"
+        # Peticiones por segundo PROMEDIO por pod en el último minuto.
+        # Se excluye uri~"/actuator.*" para no contar ni los scrapes de
+        # /actuator/prometheus ni los probes de salud (≈0,2 req/s fantasma).
+        query: avg(rate(http_server_requests_seconds_count{namespace="elasticity-lab", pod=~"elasticity-api-.*", uri!~"/actuator.*"}[1m]))
+        # Un pod con 1 core completa ~3 req/s de /api/work (300 ms CPU por
+        # petición). Umbral 2: reposo ≈0 req/s, saturación ≈3 req/s.
+        threshold: "2"
+        ignoreNullValues: "false"

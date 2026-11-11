@@ -19,9 +19,14 @@ KEDA en el namespace `keda`, metrics-server activo).
 ```bash
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 helm repo update
-helm install prometheus prometheus-community/prometheus -n elasticity-lab
+helm install prometheus prometheus-community/prometheus -n elasticity-lab \
+  --set server.global.scrape_interval=15s
 kubectl -n elasticity-lab rollout status deployment/prometheus-server
 ```
+
+> El `scrape_interval` por defecto del chart es **1 minuto**: `rate([1m])`
+> necesitaría varios minutos para reaccionar. Con 15 s el escalado se
+> comporta de forma comparable al scaler de CPU.
 
 > El chart scrapea automáticamente los pods anotados con
 > `prometheus.io/scrape: "true"` — ya incluido en `k8s/10-deployment.yaml`.
@@ -47,15 +52,27 @@ kubectl apply -f k8s/30-scaledobject-prometheus.yaml
 
 ```promql
 avg(rate(http_server_requests_seconds_count{namespace="elasticity-lab",
-     pod=~"elasticity-api-.*"}[1m]))
+     pod=~"elasticity-api-.*", uri!~"/actuator.*"}[1m]))
 ```
 
-- `rate(...[1m])` → peticiones por segundo de cada pod.
-- `avg(...)` → promedio entre todos los pods vivos.
+- `rate(...[1m])` → peticiones por segundo completadas por cada pod.
+- `uri!~"/actuator.*"` → excluye el tráfico sintético: los scrapes de
+  `/actuator/prometheus` y los probes de salud (~0,2 req/s por pod que
+  distorsionarían la medida).
+- `avg(...)` → promedio entre todos los pods vivos: **req/s por pod**, la
+  traducción exacta de "número de peticiones promedio".
 
-Con `threshold: "5"`, el deployment escala cuando **cada pod recibe de
-media más de 5 req/s** — la traducción exacta de "número de peticiones
-promedio".
+### Por qué `threshold: "2"`
+
+Un pod con `limits.cpu: 1` solo puede *completar* unas **3 req/s** de
+`/api/work` (cada petición consume ~300 ms de CPU). Con un umbral más alto
+(p. ej. 5), el rate medido nunca lo alcanzaría aunque el pod esté
+saturado. Con `2` la separación es clara:
+
+| Estado | req/s promedio por pod |
+|---|---|
+| Reposo (sin carga) | ≈ 0 (solo tráfico real; probes excluidos) |
+| Bajo carga sostenida | ≥ 3 → escala hasta repartir la demanda |
 
 ## 3. Probar el escalado
 
