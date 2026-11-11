@@ -45,18 +45,59 @@ Debe mostrar `READY: True` y `ACTIVE: True`, y el HPA con el target
 ## 2. Preparar la observación (terminal A)
 
 Deja corriendo la observación del escalado. `-w` (watch) es nativo de
-kubectl en los tres sistemas:
+kubectl en los tres sistemas.
+
+### Vista del escalado (elige una o varias pestañas)
 
 ```bash
 kubectl -n elasticity-lab get hpa -w
+# TARGETS muestra cpu actual vs umbral; REPLICAS crece/decrece en vivo
+
+kubectl -n elasticity-lab get pods -l app=elasticity-api -w
+# Ciclo de vida de cada pod: Pending → ContainerCreating → Running → Terminating
+
+kubectl -n elasticity-lab get scaledobject elasticity-api-scaler -w
+# Estado del scaler (READY/ACTIVE)
 ```
 
-Y/o en otra pestaña:
+### Uso de recursos en tiempo real
+
+`kubectl top` no tiene `-w`; haz un bucle para refrescarlo cada pocos
+segundos:
 
 ```bash
-kubectl -n elasticity-lab get pods -l app=elasticity-api -w
-kubectl -n elasticity-lab top pods
+# Linux / macOS / Git Bash
+while true; do clear; date +%H:%M:%S; kubectl -n elasticity-lab top pods -l app=elasticity-api; sleep 5; done
 ```
+
+```powershell
+# Windows (PowerShell)
+while ($true) { Clear-Host; Get-Date -Format "HH:mm:ss"; kubectl -n elasticity-lab top pods -l app=elasticity-api; Start-Sleep 5 }
+```
+
+```bat
+REM Windows (cmd.exe) — bucle infinito, Ctrl+C para salir
+for /l %i in (1,0,2) do @cls && kubectl -n elasticity-lab top pods -l app=elasticity-api && timeout /t 5 /nobreak >nul
+```
+
+También útil: `kubectl -n elasticity-lab top nodes` para ver la presión
+sobre el nodo completo.
+
+### Eventos y decisiones del autoscaler
+
+```bash
+kubectl -n elasticity-lab get events --sort-by=.lastTimestamp -w
+# SuccessfulRescale: replicas nuevas; ScalingReplicaSet: decisiones del HPA
+
+kubectl -n elasticity-lab describe hpa keda-hpa-elasticity-api-scaler
+# Sección Events: historial de escalados y motivo
+
+kubectl -n keda logs -f deploy/keda-operator --tail=20
+# Log del operador KEDA (namespace keda) al detectar y escalar
+```
+
+> Si tienes **k9s** instalado, `k9s -n elasticity-lab` te da un panel TUI
+> con pods, métricas y eventos en una sola vista — ideal para este paso.
 
 ## 3. Exponer el servicio (terminal B)
 
