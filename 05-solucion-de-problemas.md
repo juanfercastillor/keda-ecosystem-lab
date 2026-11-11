@@ -7,9 +7,66 @@ en Docker Desktop, con su causa y solución.
 
 | Síntoma | Causa probable | Acción |
 |---|---|---|
-| Pods `ImagePullBackOff` | Docker Desktop sin *containerd image store*: `docker build` guarda en el store de Docker y el kubelet (containerd) no la ve | Importa la imagen a containerd: `docker save elasticity-api:0.0.1 \| kubectl debug node/desktop-control-plane -i --image=busybox:1.36 --profile=sysadmin -- chroot /host ctr -n k8s.io images import -`, o habilita *Settings → General → Use containerd for pulling and storing images* y reconstruye |
+| Pods `ImagePullBackOff` | Docker Desktop sin *containerd image store*: `docker build` guarda en el store de Docker y el kubelet (containerd) no la ve | Importa la imagen a containerd: `docker save elasticity-api:0.0.1 \| kubectl debug node/desktop-control-plane -i --image=busybox:1.36 --profile=sysadmin -- chroot /host ctr -n k8s.io images import -`, habilita *Settings → General → Use containerd for pulling and storing images*, o usa un registro remoto (ver abajo) |
 | `localhost:30080` no responde | Docker Desktop no publica el NodePort en el host con ciertas configuraciones de red | Usa `kubectl -n elasticity-lab port-forward svc/elasticity-api 8080:8080` y `curl http://localhost:8080/api/hello` |
 | Port-forward falla con "unable to listen" | El puerto 8080 está ocupado (otro port-forward vivo o socket `TIME_WAIT`) | Espera unos segundos y reintenta, o usa otro puerto: `port-forward svc/elasticity-api 8081:8080` y ajusta la URL |
+
+### Alternativa: publicar la imagen en Docker Hub (registro público)
+
+Si ninguna de las opciones locales funciona, publica la imagen en
+**Docker Hub** y deja que el clúster la descargue del registro. Requiere
+una **cuenta de Docker Hub** y sesión iniciada (`docker login`).
+
+```bash
+# 1. Iniciar sesión (pide usuario y contraseña / token de acceso)
+docker login
+
+# 2. Etiquetar la imagen con tu usuario de Docker Hub
+docker tag elasticity-api:0.0.1 <tu-usuario>/elasticity-api:0.0.1
+
+# 3. Subirla al registro
+docker push <tu-usuario>/elasticity-api:0.0.1
+```
+
+Luego apunta el Deployment a la imagen remota — editando
+`k8s/10-deployment.yaml`:
+
+```yaml
+containers:
+  - name: elasticity-api
+    image: <tu-usuario>/elasticity-api:0.0.1   # antes: elasticity-api:0.0.1
+    imagePullPolicy: IfNotPresent
+```
+
+y reaplicando:
+
+```bash
+kubectl apply -f k8s/10-deployment.yaml
+kubectl -n elasticity-lab rollout status deployment/elasticity-api
+```
+
+Notas:
+
+- **Repositorio público** en Docker Hub → el cluster descarga sin
+  credenciales, no hace falta nada más.
+- **Repositorio privado** → además hay que crear un `imagePullSecret` y
+  referenciarlo en el Deployment:
+
+  ```bash
+  kubectl -n elasticity-lab create secret docker-registry dockerhub-creds \
+    --docker-username=<tu-usuario> --docker-password=<token> \
+    --docker-server=https://index.docker.io/v1/
+  ```
+
+  ```yaml
+  spec:
+    imagePullSecrets:
+      - name: dockerhub-creds
+    containers: ...
+  ```
+
+> Usa un **access token** de Docker Hub (*Account Settings → Security*)
+> en lugar de tu contraseña, tanto en `docker login` como en el secret.
 
 ## Métricas y escalado
 

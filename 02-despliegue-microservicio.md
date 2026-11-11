@@ -42,7 +42,10 @@ docker images elasticity-api
 > ```
 >
 > O habilita *Settings → General → Use containerd for pulling and storing
-> images* y reconstruye.
+> images* y reconstruye. Como última opción, publica la imagen en
+> **Docker Hub** y apunta el Deployment al registro remoto (requiere
+> cuenta + `docker login`; pasos en
+> [05-solucion-de-problemas.md](05-solucion-de-problemas.md)).
 
 ## 2. Aplicar los manifiestos
 
