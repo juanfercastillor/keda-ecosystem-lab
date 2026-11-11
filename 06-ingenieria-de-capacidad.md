@@ -61,8 +61,8 @@ umbral ≈ capacidad_por_pod − demanda_reaccion
 
 Ejemplo del lab: un pod completa ~3 req/s de `/api/work`; con
 `threshold: 2` se deja ~33 % de margen para esa ventana de reacción.
-Un `threshold: 5` *sonaba* razonable pero era imposible de alcanzar
-midiendo — solo el benchmark lo revela.
+Un `threshold: 5` *puede sonar* razonable pero es imposible de determinarlo
+sin midirlo — solo el benchmark lo revela.
 
 ## 5. Diseñar el comportamiento (behavior)
 
