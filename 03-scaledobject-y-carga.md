@@ -39,7 +39,7 @@ Debe mostrar `READY: True` y `ACTIVE: True`, y el HPA con el target
 | `metricType` / `value` | `Utilization` / `50` | Escala cuando el uso medio supera el 50 % del `requests.cpu` (250m) |
 | `minReplicaCount` / `maxReplicaCount` | `1` / `8` | Rango de elasticidad |
 | `pollingInterval` | `15` | Cada 15 s se consulta la métrica |
-| `cooldownPeriod` | `120` | Pausa mínima antes de reducir a 1 réplica |
+| `cooldownPeriod` | `120` | Solo aplica con `minReplicaCount: 0`; aquí KEDA avisa que no es relevante |
 | `behavior.scaleUp` / `scaleDown` | — | Escala rápido hacia arriba, lento hacia abajo |
 
 ## 2. Preparar la observación (terminal A)
@@ -164,9 +164,11 @@ while ($true) { [System.Threading.Tasks.Task]::WaitAll(1..20 | % { $c.GetAsync("
    1..10 | ForEach-Object { curl.exe -s http://localhost:8080/api/hello; Start-Sleep 1 }
    ```
 
-3. **Scale-down**: detén la carga (Ctrl+C o deja que termine). Tras el
-   `cooldownPeriod` (~2 min) más la ventana de estabilización, el
-   deployment vuelve a **1 réplica**.
+3. **Scale-down**: detén la carga (Ctrl+C o deja que termine). El
+   deployment vuelve a **1 réplica** en ~5-6 min: lo gobierna
+   `behavior.scaleDown` (ventana de 120 s y reducción del 50 % por minuto).
+   `cooldownPeriod` no aplica con el scaler `cpu` y `minReplicaCount: 1`;
+   el warning de KEDA al crear el ScaledObject es inofensivo.
 
 > **Observación real**: con los pods saturados de CPU (límite 1 core), el
 > liveness probe puede expirar y algún pod reiniciarse (`RESTARTS > 0`).
@@ -179,6 +181,11 @@ while ($true) { [System.Threading.Tasks.Task]::WaitAll(1..20 | % { $c.GetAsync("
 - Cambia `metricType` a `AverageValue` (milicores absolutos, p. ej. `300m`).
 - Reduce `cooldownPeriod` a `30` y compara el tiempo de scale-down.
 - Logs del operador: `kubectl -n keda logs deploy/keda-operator`.
+
+## 7. Evidencias
+
+Toma las capturas indicadas en [08-evidencias.md](08-evidencias.md) mientras
+ejecutas este paso (especialmente scale-up y scale-down, con hora visible).
 
 ## Deshacer (limpieza)
 

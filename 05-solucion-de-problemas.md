@@ -68,6 +68,11 @@ Notas:
 > Usa un **access token** de Docker Hub (*Account Settings → Security*)
 > en lugar de tu contraseña, tanto en `docker login` como en el secret.
 
+## Entorno kind + podman
+
+Ver la tabla de problemas de [07-entorno-kind-podman.md](07-entorno-kind-podman.md)
+(`short-name did not resolve`, `ImagePullBackOff` en kind, contexto de kubectl).
+
 ## Métricas y escalado
 
 | Síntoma | Causa probable | Acción |
