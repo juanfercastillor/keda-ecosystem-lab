@@ -1,0 +1,13 @@
+# Configuración del clúster kind del laboratorio.
+# Publica el NodePort 30080 del Service en localhost:30080. A diferencia de
+# `kubectl port-forward` (que se ata a UN solo pod), el NodePort balancea entre
+# TODAS las réplicas, que es lo que necesita la demo de elasticidad.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      - containerPort: 30080
+        hostPort: 30080
+        listenAddress: "127.0.0.1"
+        protocol: TCP

@@ -165,7 +165,7 @@ if ($Mode -eq 'kind') {
     if ((kind get clusters 2>$null) -contains $Cluster) {
         Write-Host "  clúster $Cluster ya existe: se reutiliza"
     } else {
-        kind create cluster --name $Cluster
+        kind create cluster --name $Cluster --config (Join-Path $Root 'k8s\kind-config.yaml')
         Check 'No se pudo crear el clúster kind.'
         Set-State CLUSTER_CREATED 1
     }
@@ -254,7 +254,12 @@ Write-Host ''
 Write-Host "Listo. Contexto: $C"
 Write-Host 'Siguiente:'
 Write-Host "  kubectl --context $C -n elasticity-lab get scaledobject,hpa"
-Write-Host "  kubectl --context $C -n elasticity-lab port-forward svc/elasticity-api 8080:8080   # otra terminal"
-Write-Host '  .\scripts\carga.ps1 -Concurrencia 20 -DuracionSegundos 120'
+if ($Mode -eq 'kind') {
+    Write-Host '  curl.exe http://localhost:30080/api/hello        # NodePort: balancea entre todas las réplicas'
+    Write-Host '  .\scripts\carga.ps1 -Concurrencia 20 -DuracionSegundos 120 -Url "http://localhost:30080/api/work?ms=300"'
+} else {
+    Write-Host "  kubectl --context $C -n elasticity-lab port-forward svc/elasticity-api 8080:8080   # otra terminal"
+    Write-Host '  .\scripts\carga.ps1 -Concurrencia 20 -DuracionSegundos 120'
+}
 Write-Host 'Limpieza: .\scripts\cleanup.ps1   (o -Todo para quitar también las herramientas instaladas)'
 Write-Host "Nota: para usar kubectl/helm/kind en nuevas terminales añade $Bin al PATH del usuario."

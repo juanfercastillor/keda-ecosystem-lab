@@ -269,6 +269,13 @@ kubectl -n elasticity-lab port-forward svc/elasticity-api 8080:8080
 > El Service también es `NodePort :30080`, pero en Docker Desktop ese puerto
 > no siempre se publica en `localhost` de Windows (depende del modo de red).
 > El `port-forward` funciona en todos los casos.
+>
+> ⚠️ **`port-forward` se ata a UN solo pod**: todas las peticiones llegan al
+> mismo pod (no se ve el balanceo) y la carga no alcanza a las réplicas
+> nuevas. Con **kind** (`setup` / `07-entorno-kind-podman.md`) el NodePort
+> sí está publicado en `localhost:30080` y balancea entre todas las réplicas:
+> usa `http://localhost:30080` para `/api/hello` y para la carga
+> (`URL="http://localhost:30080/api/work?ms=300" ./scripts/carga.sh`).
 
 Prueba los endpoints (en otra terminal):
 
@@ -345,7 +352,9 @@ CONCURRENCIA=20 DURACION=300 ./scripts/carga.sh
    `TARGETS` y nacen pods nuevos (`elasticity-api-xxx`).
 2. Con carga sostenida el deployment llega hasta `maxReplicaCount: 8`.
 3. Mientras escala, las respuestas de `/api/hello` rotan entre varios
-   hostnames: el Service balancea entre todas las réplicas.
+   hostnames: el Service balancea entre todas las réplicas (requiere NodePort
+   o tráfico dentro del clúster; con `port-forward` siempre responde el mismo
+   pod).
 4. **Detén la carga** (Ctrl+C o espera a que termine) → el deployment
    vuelve a **1 réplica** en ~5-6 min (medido en kind). La bajada la
    gobierna `behavior.scaleDown` (ventana de estabilización de 120 s y

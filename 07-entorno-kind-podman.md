@@ -61,7 +61,7 @@ fallaban con `short-name ... did not resolve to an alias`.)
 ```bash
 export KIND_EXPERIMENTAL_PROVIDER=podman
 C=kind-keda-lab
-kind create cluster --name keda-lab
+kind create cluster --name keda-lab --config k8s/kind-config.yaml
 kubectl config current-context        # kind-keda-lab
 ```
 
@@ -107,8 +107,15 @@ kubectl --context $C apply -f k8s/20-scaledobject-cpu.yaml
 ```
 
 Continúa con [03-scaledobject-y-carga.md](03-scaledobject-y-carga.md)
-(añadiendo `--context $C` a los comandos). El NodePort no se publica en
-`localhost`: usa siempre `port-forward`.
+(añadiendo `--context $C` a los comandos). `k8s/kind-config.yaml` publica el NodePort **30080** del Service en
+`localhost:30080`: úsalo para probar y para generar carga, porque balancea
+entre **todas** las réplicas. `kubectl port-forward` se ata a **un solo pod**
+(la carga nunca llegaría a las réplicas nuevas).
+
+```bash
+curl http://localhost:30080/api/hello
+URL="http://localhost:30080/api/work?ms=300" CONCURRENCIA=20 DURACION=120 ./scripts/carga.sh
+```
 
 ## Problemas frecuentes
 
@@ -118,6 +125,7 @@ Continúa con [03-scaledobject-y-carga.md](03-scaledobject-y-carga.md)
 | Pod en `ImagePullBackOff` / `ErrImagePull` | Imagen no cargada en kind o con otro nombre | Repite el paso 4 (tag `docker.io/library/...`) |
 | `"/" is not a shared mount` (warning de podman) | Rootless en WSL | Inofensivo |
 | `kind` pide el provider | Falta la variable | `export KIND_EXPERIMENTAL_PROVIDER=podman` |
+| `running kind with rootless provider requires setting systemd property "Delegate=yes"` | podman rootless sin cgroups delegados a tu sesión | Usa una sesión normal de WSL/terminal; o ejecuta `systemd-run --user --scope -p Delegate=yes ./scripts/setup.sh` (ver https://kind.sigs.k8s.io/docs/user/rootless/) |
 
 ## Limpieza
 

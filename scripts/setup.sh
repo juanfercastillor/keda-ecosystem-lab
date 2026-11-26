@@ -155,7 +155,7 @@ if [ "$MODE" = kind ]; then
     if kind get clusters 2>/dev/null | grep -qx "$CLUSTER"; then
         echo "  clúster $CLUSTER ya existe: se reutiliza"
     else
-        kind create cluster --name "$CLUSTER" || fail "No se pudo crear el clúster kind."
+        kind create cluster --name "$CLUSTER" --config "$ROOT/k8s/kind-config.yaml" || fail "No se pudo crear el clúster kind. Si el error menciona Delegate=yes (podman rootless): systemd-run --user --scope -p Delegate=yes ./scripts/setup.sh (ver 07-entorno-kind-podman.md)."
         state_set CLUSTER_CREATED 1
     fi
 fi
@@ -222,7 +222,12 @@ echo
 echo "Listo. Contexto: $C"
 echo "Siguiente:"
 echo "  kubectl --context $C -n elasticity-lab get scaledobject,hpa"
-echo "  kubectl --context $C -n elasticity-lab port-forward svc/elasticity-api 8080:8080   # otra terminal"
-echo "  CONCURRENCIA=20 DURACION=120 ./scripts/carga.sh"
+if [ "$MODE" = kind ]; then
+    echo "  curl http://localhost:30080/api/hello        # NodePort: balancea entre todas las réplicas"
+    echo "  URL=\"http://localhost:30080/api/work?ms=300\" CONCURRENCIA=20 DURACION=120 ./scripts/carga.sh"
+else
+    echo "  kubectl --context $C -n elasticity-lab port-forward svc/elasticity-api 8080:8080   # otra terminal"
+    echo "  CONCURRENCIA=20 DURACION=120 ./scripts/carga.sh"
+fi
 echo "Limpieza: ./scripts/cleanup.sh   (o --todo para quitar también las herramientas instaladas)"
 case ":$PATH:" in *":$BIN:"*) ;; *) echo "Nota: añade $BIN a tu PATH para usar kubectl/helm/kind en nuevas terminales." ;; esac

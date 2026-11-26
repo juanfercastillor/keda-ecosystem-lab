@@ -107,6 +107,13 @@ Si no lo tienes ya corriendo desde el paso anterior:
 kubectl -n elasticity-lab port-forward svc/elasticity-api 8080:8080
 ```
 
+> ⚠️ `port-forward` se ata a **un solo pod**: no verás balanceo y la carga no
+> llega a las réplicas nuevas (el HPA igualmente escala, pero la demo pierde
+> sentido). Con **kind** usa el **NodePort `localhost:30080`** (publicado por
+> `k8s/kind-config.yaml`): sustituye `localhost:8080` por `localhost:30080` en
+> las URLs de abajo, p. ej.
+> `URL="http://localhost:30080/api/work?ms=300" ./scripts/carga.sh`.
+
 ## 4. Generar carga (terminal C)
 
 ### Windows (PowerShell)
@@ -152,7 +159,8 @@ while ($true) { [System.Threading.Tasks.Task]::WaitAll(1..20 | % { $c.GetAsync("
    a crear pods hasta `maxReplicaCount: 8` si la carga se sostiene.
 2. **Balanceo**: el Service reparte las peticiones entre las nuevas
    réplicas. Compruébalo consultando varias veces `/api/hello` — el `pod`
-   de la respuesta rota:
+   de la respuesta rota (solo con el NodePort; con `port-forward` responde
+   siempre el mismo pod):
 
    ```bash
    # Linux / macOS / Git Bash
